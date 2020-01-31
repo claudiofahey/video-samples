@@ -31,16 +31,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-//import sun.net.www.content.image.png;
-
 /**
  * This job reads and writes a video stream from Pravega and writes frame metadata to the console.
  */
 public class FlinkObjectDetectorJob extends AbstractJob {
     // Logger initialization
     private static Logger log = LoggerFactory.getLogger(FlinkObjectDetectorJob.class);
-//    final TFObjectDetector objectDetector = new TFObjectDetector();
-
 
     /**
      * The entry point for Flink applications.
@@ -69,6 +65,7 @@ public class FlinkObjectDetectorJob extends AbstractJob {
             final String jobName = FlinkObjectDetectorJob.class.getName();
             StreamExecutionEnvironment env = initializeFlinkStreaming();
             createStream(getConfig().getInputStreamConfig());
+            createStream(getConfig().getOutputStreamConfig());
 
             StreamCut startStreamCut = StreamCut.UNBOUNDED;
             if (getConfig().isStartAtTail()) {
@@ -110,24 +107,6 @@ public class FlinkObjectDetectorJob extends AbstractJob {
                     .name("ChunkedVideoFrameReassembler");
             // videoFrames.printToErr().uid("videoFrames-print").name("videoFrames-print");
 
-            // Parse image file and obtain metadata.
-           /* DataStream<String> frameInfo = videoFrames
-                    .map(frame -> {
-                        InputStream inStream = new ByteArrayInputStream(frame.data);
-                        BufferedImage inImage = ImageIO.read(inStream);
-                        return String.format("camera %d, frame %d, %dx%dx%d, %d bytes, %s",
-                                frame.camera,
-                                frame.frameNumber,
-                                inImage.getWidth(),
-                                inImage.getHeight(),
-                                inImage.getColorModel().getNumColorComponents(),
-                                frame.data.length,
-                                inImage.toString());
-                    })
-                    .uid("frameInfo")
-                    .name("frameInfo");*/
-            //  frameInfo.printToErr().uid("frameInfo-print").name("frameInfo-print");
-
             //  identify objects with YOLOv3
             DataStream<VideoFrame> objectDetectedFrames = videoFrames
                     .map(frame -> {
@@ -141,10 +120,6 @@ public class FlinkObjectDetectorJob extends AbstractJob {
                     });
             objectDetectedFrames.printToErr().uid("video-object-detector-print").name("video-object-detector-print");
 
-            //change to use from input
-            Utils.createStream(getConfig().getPravegaConfig(),getConfig().getOutputStreamConfig().getStream().getStreamName());
-
-
             DataStream<ChunkedVideoFrame> chunkedVideoFrames = objectDetectedFrames
                     .flatMap(new VideoFrameChunker(getConfig().getChunkSizeBytes()))
                     .uid("VideoFrameChunker")
@@ -154,8 +129,6 @@ public class FlinkObjectDetectorJob extends AbstractJob {
             chunkedVideoFrames
                     .filter(f -> f.camera == 0 && f.frameNumber % 10 == 0)
                     .printToErr().uid("chunkedVideoFrames-print").name("chunkedVideoFrames-print");
-
-            System.out.println("Reached chunked");
 
             // create the Pravega sink to write a stream of video frames
             FlinkPravegaWriter<ChunkedVideoFrame> writer = FlinkPravegaWriter.<ChunkedVideoFrame>builder()
@@ -170,31 +143,12 @@ public class FlinkObjectDetectorJob extends AbstractJob {
                     .uid("output-sink")
                     .name("output-sink");
 
-
-            System.out.println("output-stream: " + getConfig().getOutputStreamConfig().toString());
-
-            chunkedVideoFrames.addSink(writer).name(getConfig().getOutputStreamConfig().toString());
-//            videoFrames.addSink(writer).name("video-objects-detected");
-
-            long end = System.currentTimeMillis();
-            System.out.println("@@@@@@@@@@@  TIME TAKEN FOR FLINK PROCESS @@@@@@@@@@@  "+(end - start));
+            chunkedVideoFrames.addSink(writer).name("video-objects-detected");
 
             log.info("Executing {} job", jobName);
             env.execute(jobName);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    /*
-     * Event Router class
-     */
-    public static class EventRouter implements PravegaEventRouter<VideoFrame> {
-        // Ordering - events with the same routing key will always be
-        // read in the order they were written
-        @Override
-        public String getRoutingKey(VideoFrame event) {
-            return "SomeRoutingKey";
         }
     }
 

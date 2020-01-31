@@ -31,7 +31,7 @@ public class TFObjectDetector implements Serializable {
     Session session;
     // Params used for image processing
     int SIZE = 416;
-    float MEAN = 255f;
+    float MEAN = 255f;  // TODO: this is not the mean
     Output<Float> output = null;
     private List<String> LABEL_DEF;
     private static TFObjectDetector single_instance = null;

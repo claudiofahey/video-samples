@@ -84,8 +84,9 @@ public class CameraRecorder implements Runnable {
             cap.set(opencv_videoio.CAP_PROP_FRAME_WIDTH, captureWidth);
             cap.set(opencv_videoio.CAP_PROP_FRAME_HEIGHT, captureHeight);
 
-//            grabber.start();
-            log.info("actual frame rate={}", cap.get(opencv_videoio.CAP_PROP_FPS));
+            final double actualFramesPerSec = cap.get(opencv_videoio.CAP_PROP_FPS);
+            log.info("actual frame rate={}", actualFramesPerSec);
+            final boolean dropFrames = actualFramesPerSec > getConfig().getFramesPerSec();
 
             // Initialize capture preview window.
             final CanvasFrame cFrame = new CanvasFrame("Capture Preview", CanvasFrame.getDefaultGamma());
@@ -109,11 +110,19 @@ public class CameraRecorder implements Runnable {
                 Frame capturedFrame;
 
                 Mat mat = new Mat();
+                long lastTimestamp = 0;
 
 //                OpenCVFrameConverter.ToIplImage converterToImage = new OpenCVFrameConverter.ToIplImage();
                 while (cap.read(mat)) {
-                    capturedFrame = converterToMat.convert(mat);
                     long timestamp = System.currentTimeMillis();
+                    if (dropFrames && timestamp - lastTimestamp < 1000 / getConfig().getFramesPerSec()) {
+                        log.debug("Dropping captured frame to maintain desired frames per second");
+                        continue;
+                    }
+                    lastTimestamp = timestamp;
+
+                    capturedFrame = converterToMat.convert(mat);
+
                     log.info("frameNumber={}, timestamp={}, capturedFrame={}", frameNumber, timestamp, capturedFrame);
 
                     // Convert captured frame to PNG.
@@ -144,9 +153,6 @@ public class CameraRecorder implements Runnable {
                     if (cFrame.isVisible()) {
                         cFrame.showImage(capturedFrame);
                     }
-
-                    // Sleep to limit frame rate.
-//                    Thread.sleep((long) (1000.0 / getConfig().getFramesPerSec()));
 
                     // Make sure frame has been durably persisted to Pravega.
 //                    future.get();

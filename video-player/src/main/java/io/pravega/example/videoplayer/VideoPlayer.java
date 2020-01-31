@@ -64,6 +64,12 @@ public class VideoPlayer implements Runnable {
             try (StreamManager streamManager = StreamManager.create(clientConfig)) {
                 streamInfo = streamManager.getStreamInfo(scope, streamName);
             }
+
+            StreamCut startStreamCut = StreamCut.UNBOUNDED;
+            if (getConfig().isStartAtTail()) {
+                startStreamCut = streamInfo.getTailStreamCut();
+            }
+
             final long timeoutMs = 1000;
             ObjectMapper mapper = new ObjectMapper();
             log.info("gamma={}", CanvasFrame.getDefaultGamma());
@@ -73,7 +79,7 @@ public class VideoPlayer implements Runnable {
             final ReaderGroupConfig readerGroupConfig = ReaderGroupConfig.builder()
                     .stream(
                             getConfig().getInputStreamConfig().getStream(),
-                            streamInfo.getTailStreamCut(),
+                            startStreamCut,
                             StreamCut.UNBOUNDED)
                     .build();
             try (ReaderGroupManager readerGroupManager = ReaderGroupManager.withScope(scope, clientConfig)) {
