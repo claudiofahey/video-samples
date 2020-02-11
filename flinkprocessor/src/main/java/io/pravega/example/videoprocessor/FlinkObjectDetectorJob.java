@@ -124,7 +124,7 @@ public class FlinkObjectDetectorJob extends AbstractJob {
             //  identify objects with YOLOv3
             DataStream<VideoFrame> objectDetectedFrames = videoFrames
                     .map(frame -> {
-                        frame.data = TFObjectDetector.getInstance().detect(frame.data);
+//                        frame.data = TFObjectDetector.getInstance().detect(frame.data);
 //                      frame.recognitions = new ArrayList<Recognition>();
 //                      for(Recognition rec : TFObjectDetector.getInstance().getRecognitions()) {
 //                          frame.recognitions.add(rec);

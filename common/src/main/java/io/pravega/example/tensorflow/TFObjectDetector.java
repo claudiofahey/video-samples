@@ -18,6 +18,7 @@ import org.tensorflow.*;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -83,7 +84,8 @@ public class TFObjectDetector implements Serializable {
         byte[] finalData = null;
 
 
-        List<Recognition> recognitions = YOLOClassifier.getInstance().classifyImage(executeYOLOGraph(image), LABEL_DEF);
+//        List<Recognition> recognitions = YOLOClassifier.getInstance().classifyImage(executeYOLOGraph(image), LABEL_DEF);
+        List<Recognition> recognitions = new ArrayList();
 
         recognitions.add(
             new Recognition(99, "none", 1.0f,
