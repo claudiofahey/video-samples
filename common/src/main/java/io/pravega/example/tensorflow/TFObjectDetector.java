@@ -24,22 +24,22 @@ import java.util.List;
  * ObjectDetector class to detect objects using pre-trained models with TensorFlow Java API.
  */
 public class TFObjectDetector implements Serializable {
-    public static final String JPEG_BYTES_PLACEHOLDER_NAME = "image";
     private final Logger log = LoggerFactory.getLogger(TFObjectDetector.class);
 
-//    public List<Recognition> recognitions = null;
-//    Graph graph;
-    Session session;
     // Params used for image processing
-    int IMAGE_DIMENSION = 416;
-    float SCALE = 255f;
-    Output<Float> imagePreprocessingOutput;
-    private List<String> LABEL_DEF;
-    private static TFObjectDetector single_instance = null;
+    private static final int IMAGE_DIMENSION = 416;
+    private static final float SCALE = 255f;
+    private static final String JPEG_BYTES_PLACEHOLDER_NAME = "image";
 
+    private static TFObjectDetector single_instance;
+
+    private final Session session;
+    private final Output<Float> imagePreprocessingOutput;
+    private final List<String> LABEL_DEF;
 
     public static TFObjectDetector getInstance() {
-        if(single_instance == null) {
+        // TODO: fix race condition
+        if (single_instance == null) {
             single_instance = new TFObjectDetector();
         }
 
@@ -79,26 +79,12 @@ public class TFObjectDetector implements Serializable {
      * @return output image with objects detected
      */
     public byte[] detect(byte[] image) {
-        long start = System.currentTimeMillis();
-        byte[] finalData = null;
-
-        // leak BEGIN
+        final long start = System.currentTimeMillis();
         final float[] tensorFlowOutput = executeYOLOGraph(image);
-        // leak END
-//        List<Recognition> recognitions = YOLOClassifier.getInstance().classifyImage(tensorFlowOutput, LABEL_DEF);
-//        List<Recognition> recognitions = new ArrayList();
-
-//        recognitions.add(
-//            new Recognition(99, "none", 1.0f,
-//                new BoxPosition(50f, 50f, 100f, 100f)));
-//
-//        log.info("recognitions={}", recognitions);
-//
-//        finalData = ImageUtil.getInstance().labelImage(image, recognitions);
-        finalData = image;
-        long end = System.currentTimeMillis();
+        final List<Recognition> recognitions = YOLOClassifier.getInstance().classifyImage(tensorFlowOutput, LABEL_DEF);
+        final byte[] finalData = ImageUtil.getInstance().labelImage(image, recognitions);
+        final long end = System.currentTimeMillis();
         log.info("@@@@@@@@@@@  TENSORFLOW  TIME TAKEN FOR DETECTION @@@@@@@@@@@  " + (end - start));
-
         return finalData;
     }
 
@@ -134,20 +120,4 @@ public class TFObjectDetector implements Serializable {
             }
         }
     }
-
-//    public List<Recognition> getRecognitions() {
-//        return recognitions;
-//    }
-
-//    private static void printToConsole() {
-//        for (Recognition recognition : getRecognitions()) {
-//            System.out.println("TITLE :  " + recognition.getTitle());
-//            System.out.println("CONFIDENCE :  " + recognition.getConfidence());
-//        }
-//    }
-
-//    private void setRecognitions(List<Recognition> recs) {
-//        this.recognitions = recs;
-//    }
-
 }
