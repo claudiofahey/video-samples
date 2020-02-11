@@ -85,11 +85,16 @@ public class TFObjectDetector implements Serializable {
 
         List<Recognition> recognitions = YOLOClassifier.getInstance().classifyImage(executeYOLOGraph(image), LABEL_DEF);
 
+        recognitions.add(
+            new Recognition(99, "none", 1.0f,
+                new BoxPosition(50f, 50f, 100f, 100f)));
+
+        log.info("recognitions={}", recognitions);
+
         finalData = ImageUtil.getInstance().labelImage(image, recognitions);
 
         long end = System.currentTimeMillis();
         log.info("@@@@@@@@@@@  TENSORFLOW  TIME TAKEN FOR DETECTION @@@@@@@@@@@  " + (end - start));
-
 
         return finalData;
     }
